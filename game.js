@@ -8,6 +8,15 @@ function setupRealtimeListener() {
         }
         gameState.realtimeListener = null;
     }
+    // 🆕 멤버 리스트 리스너도 해제
+    if (gameState.availableMembersListener) {
+        try {
+            gameState.availableMembersListener();
+        } catch (error) {
+            console.error('멤버 리스트 리스너 해제 오류:', error);
+        }
+        gameState.availableMembersListener = null;
+    }
 
     // 로그인 상태가 아니면 리스너 설정 안 함
     if (!gameState.isLoggedIn || !gameState.player) {
@@ -195,6 +204,20 @@ function setupRealtimeListener() {
                 }
             }
         });
+    // 🆕 다른 플레이어들의 상태 변화를 감지하는 추가 리스너
+    const availableMembersListener = db.collection('activePlayers')
+        .where('isAlive', '==', true)
+        .where('isActive', '==', true)
+        .onSnapshot(function(snapshot) {
+            if (!gameState.isLoggedIn) return;
+            
+            console.log('다른 플레이어 상태 변화 감지');
+            
+            // 상호작용 멤버 목록 실시간 업데이트
+            loadAvailableMembers();
+        });
+    // 🆕 리스너 정리를 위해 gameState에 저장
+    gameState.availableMembersListener = availableMembersListener;
 }
 
 // UI 관련 함수들
@@ -280,7 +303,8 @@ let gameState = {
     matchStartTime: null,
     isMatched: false,
     matchTimer: null,
-    availableMembers: []
+    availableMembers: [],
+    availableMembersListener: null // 🆕 추가
 };
 // 2단계: 범인 상점 기본 변수 - game.js 상단(gameState 변수 근처)에 추가
 
@@ -1399,7 +1423,15 @@ async function logout() {
             }
             gameState.realtimeListener = null;
         }
-
+        // 🆕 멤버 리스트 리스너도 해제
+        if (gameState.availableMembersListener) {
+            try {
+                gameState.availableMembersListener();
+            } catch (error) {
+                console.error('멤버 리스트 리스너 해제 오류:', error);
+            }
+            gameState.availableMembersListener = null;
+        }
         // 상인 랭킹 리스너 해제
         if (gameState.merchantRankingListener) {
             try {
