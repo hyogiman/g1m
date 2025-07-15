@@ -3280,10 +3280,11 @@ function showInteractionRequest(request) {
 
 async function acceptInteraction(partnerId, partnerName) {
     try {
-        // 🆕 정확한 서버 시간으로 동시 업데이트
+        console.log('상호작용 수락 시작');
+        
         const batch = db.batch();
         const startTime = firebase.firestore.FieldValue.serverTimestamp();
-    
+        
         batch.update(db.collection('activePlayers').doc(gameState.player.loginCode), {
             interactionStatus: 'matched',
             currentPartner: partnerId,
@@ -3298,17 +3299,19 @@ async function acceptInteraction(partnerId, partnerName) {
         });
         
         await batch.commit();
-        // 🆕 DB에서 실제 저장된 시간 다시 가져오기
-        const updatedDoc = await db.collection('activePlayers').doc(gameState.player.loginCode).get();
-        if (updatedDoc.exists) {
-            gameState.matchStartTime = updatedDoc.data().matchStartTime;
-        }
+        console.log('DB 업데이트 완료');
+        
         gameState.interactionStatus = 'matched';
         gameState.currentPartner = partnerId;
         gameState.isMatched = true;
         
         closeInteractionModal();
-        startInteractionTimer(partnerName);
+        
+        // 🔧 DB 커밋 후 잠시 대기한 후 타이머 시작
+        setTimeout(() => {
+            startInteractionTimer(partnerName);
+        }, 500);
+        
         updateInteractionUI();
         
     } catch (error) {
@@ -3348,10 +3351,12 @@ function startInteractionTimer(partnerName) {
         clearInterval(interactionTimer);
     }
     
-    // 🆕 서버 시간 기준으로 계산
+    console.log('타이머 시작:', partnerName);
+    
+    // 🔧 즉시 첫 업데이트
     updateTimerFromServer(partnerName);
     
-    // 🆕 1초마다 서버 시간 기준으로 업데이트
+    // 🔧 1초마다 서버 시간 기준으로 업데이트
     interactionTimer = setInterval(() => {
         updateTimerFromServer(partnerName);
     }, 1000);
@@ -3371,38 +3376,45 @@ function startInteractionTimerWithRemaining(partnerName, remainingSeconds) {
         updateTimerFromServer(partnerName);
     }, 1000);
 }
-// 🆕 서버 시간 기준 타이머 업데이트
+// 🆕 서버 시간 기준 타이머 업데이트 (수정된 버전)
 async function updateTimerFromServer(partnerName) {
-    if (!gameState.isMatched || !gameState.matchStartTime) {
+    if (!gameState.isMatched) {
         endInteractionTimer();
         return;
     }
     
     try {
-        // 현재 서버 시간 가져오기
-        const serverTime = firebase.firestore.Timestamp.now().toMillis();
+        // 🔧 항상 DB에서 최신 매칭 시간 가져오기
+        const playerDoc = await db.collection('activePlayers').doc(gameState.player.loginCode).get();
         
-        // 매칭 시작 시간 (서버 기준)
-        let matchStartTime;
-        if (gameState.matchStartTime.toMillis) {
-            matchStartTime = gameState.matchStartTime.toMillis();
-        } else {
-            // 최신 매칭 시간을 DB에서 가져오기
-            const playerDoc = await db.collection('activePlayers').doc(gameState.player.loginCode).get();
-            if (playerDoc.exists && playerDoc.data().matchStartTime) {
-                matchStartTime = playerDoc.data().matchStartTime.toMillis();
-                gameState.matchStartTime = playerDoc.data().matchStartTime;
-            } else {
-                endInteractionTimer();
-                return;
-            }
+        if (!playerDoc.exists) {
+            endInteractionTimer();
+            return;
         }
+        
+        const playerData = playerDoc.data();
+        
+        // 🔧 매칭 상태가 아니거나 매칭 시간이 없으면 종료
+        if (playerData.interactionStatus !== 'matched' || !playerData.matchStartTime) {
+            endInteractionTimer();
+            return;
+        }
+        
+        // 현재 서버 시간과 매칭 시작 시간 비교
+        const serverTime = firebase.firestore.Timestamp.now().toMillis();
+        const matchStartTime = playerData.matchStartTime.toMillis();
         
         // 경과 시간 계산
         const elapsed = serverTime - matchStartTime;
         const remaining = Math.max(0, 180000 - elapsed); // 3분 - 경과시간
         
+        console.log('타이머 업데이트:', {
+            elapsed: Math.floor(elapsed / 1000) + '초',
+            remaining: Math.floor(remaining / 1000) + '초'
+        });
+        
         if (remaining <= 0) {
+            console.log('타이머 시간 만료');
             endInteractionTimer();
             return;
         }
@@ -3410,10 +3422,12 @@ async function updateTimerFromServer(partnerName) {
         const timeLeft = Math.floor(remaining / 1000);
         updateTimerDisplay(timeLeft, partnerName);
         
+        // 🔧 gameState도 업데이트
+        gameState.matchStartTime = playerData.matchStartTime;
+        
     } catch (error) {
         console.error('서버 시간 기준 타이머 업데이트 오류:', error);
-        // 오류 발생 시 로컬 시간으로 폴백
-        updateTimerDisplayLocal(partnerName);
+        // 🔧 오류 발생 시에도 타이머 유지 (로컬 시간으로 폴백하지 않음)
     }
 }
 
