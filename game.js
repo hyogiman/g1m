@@ -3211,17 +3211,12 @@ function updateMembersList() {
     
     let html = '';
     gameState.availableMembers.forEach(member => {
-        const roleNames = {
-            'detective': '🔍 탐정',
-            'criminal': '🔪 범인', 
-            'merchant': '💰 상인'
-        };
-        
+        // 🆕 역할 표시 완전 제거
         html += `
             <div class="member-item">
                 <div class="member-info">
                     <div class="member-name">${member.name}</div>
-                    <div class="member-details">${member.position} | ${roleNames[member.role]}</div>
+                    <div class="member-details">${member.position}</div>
                 </div>
                 <button class="interaction-request-btn" onclick="requestInteraction('${member.loginCode}', '${member.name}')">
                     상호작용
@@ -3285,11 +3280,10 @@ function showInteractionRequest(request) {
 
 async function acceptInteraction(partnerId, partnerName) {
     try {
-        const startTime = firebase.firestore.FieldValue.serverTimestamp();
-        
-        // 양쪽 다 매칭 상태로 변경
+        // 🆕 정확한 서버 시간으로 동시 업데이트
         const batch = db.batch();
-        
+        const startTime = firebase.firestore.FieldValue.serverTimestamp();
+    
         batch.update(db.collection('activePlayers').doc(gameState.player.loginCode), {
             interactionStatus: 'matched',
             currentPartner: partnerId,
@@ -3304,7 +3298,11 @@ async function acceptInteraction(partnerId, partnerName) {
         });
         
         await batch.commit();
-        
+        // 🆕 DB에서 실제 저장된 시간 다시 가져오기
+        const updatedDoc = await db.collection('activePlayers').doc(gameState.player.loginCode).get();
+        if (updatedDoc.exists) {
+            gameState.matchStartTime = updatedDoc.data().matchStartTime;
+        }
         gameState.interactionStatus = 'matched';
         gameState.currentPartner = partnerId;
         gameState.isMatched = true;
@@ -3350,18 +3348,12 @@ function startInteractionTimer(partnerName) {
         clearInterval(interactionTimer);
     }
     
-    let timeLeft = 180; // 3분 = 180초
-    matchEndTime = Date.now() + (timeLeft * 1000);
+    // 🆕 서버 시간 기준으로 계산
+    updateTimerFromServer(partnerName);
     
-    updateTimerDisplay(timeLeft, partnerName);
-    
+    // 🆕 1초마다 서버 시간 기준으로 업데이트
     interactionTimer = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay(timeLeft, partnerName);
-        
-        if (timeLeft <= 0) {
-            endInteractionTimer();
-        }
+        updateTimerFromServer(partnerName);
     }, 1000);
 }
 
@@ -3371,19 +3363,72 @@ function startInteractionTimerWithRemaining(partnerName, remainingSeconds) {
         clearInterval(interactionTimer);
     }
     
-    let timeLeft = remainingSeconds;
-    matchEndTime = Date.now() + (timeLeft * 1000);
+    // 🆕 서버 시간 기준으로 계산
+    updateTimerFromServer(partnerName);
+    
+    // 🆕 1초마다 서버 시간 기준으로 업데이트
+    interactionTimer = setInterval(() => {
+        updateTimerFromServer(partnerName);
+    }, 1000);
+}
+// 🆕 서버 시간 기준 타이머 업데이트
+async function updateTimerFromServer(partnerName) {
+    if (!gameState.isMatched || !gameState.matchStartTime) {
+        endInteractionTimer();
+        return;
+    }
+    
+    try {
+        // 현재 서버 시간 가져오기
+        const serverTime = firebase.firestore.Timestamp.now().toMillis();
+        
+        // 매칭 시작 시간 (서버 기준)
+        let matchStartTime;
+        if (gameState.matchStartTime.toMillis) {
+            matchStartTime = gameState.matchStartTime.toMillis();
+        } else {
+            // 최신 매칭 시간을 DB에서 가져오기
+            const playerDoc = await db.collection('activePlayers').doc(gameState.player.loginCode).get();
+            if (playerDoc.exists && playerDoc.data().matchStartTime) {
+                matchStartTime = playerDoc.data().matchStartTime.toMillis();
+                gameState.matchStartTime = playerDoc.data().matchStartTime;
+            } else {
+                endInteractionTimer();
+                return;
+            }
+        }
+        
+        // 경과 시간 계산
+        const elapsed = serverTime - matchStartTime;
+        const remaining = Math.max(0, 180000 - elapsed); // 3분 - 경과시간
+        
+        if (remaining <= 0) {
+            endInteractionTimer();
+            return;
+        }
+        
+        const timeLeft = Math.floor(remaining / 1000);
+        updateTimerDisplay(timeLeft, partnerName);
+        
+    } catch (error) {
+        console.error('서버 시간 기준 타이머 업데이트 오류:', error);
+        // 오류 발생 시 로컬 시간으로 폴백
+        updateTimerDisplayLocal(partnerName);
+    }
+}
+
+// 🆕 로컬 시간 폴백 함수
+function updateTimerDisplayLocal(partnerName) {
+    if (!matchEndTime) return;
+    
+    const remaining = Math.max(0, matchEndTime - Date.now());
+    const timeLeft = Math.floor(remaining / 1000);
     
     updateTimerDisplay(timeLeft, partnerName);
     
-    interactionTimer = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay(timeLeft, partnerName);
-        
-        if (timeLeft <= 0) {
-            endInteractionTimer();
-        }
-    }, 1000);
+    if (timeLeft <= 0) {
+        endInteractionTimer();
+    }
 }
 function updateTimerDisplay(seconds, partnerName) {
     const minutes = Math.floor(seconds / 60);
@@ -3493,3 +3538,4 @@ window.declineInteraction = declineInteraction;
 window.toggleMembersList = toggleMembersList;
 window.startInteractionTimerWithRemaining = startInteractionTimerWithRemaining;
 window.initializeInteractionFields = initializeInteractionFields;
+window.updateTimerFromServer = updateTimerFromServer;
