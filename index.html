@@ -103,6 +103,15 @@ body {
     padding: 16px;
 }
 
+/* 🆕 타이머가 표시될 때 content 영역 조정 */
+.interaction-timer-container:not([style*="display: none"]) + .content {
+    max-height: calc(100vh - 180px);
+}
+
+.interaction-timer-container:not([style*="display: none"]) + .content.compact {
+    max-height: calc(100vh - 140px);
+}
+        
 /* 스크롤바 스타일링 */
 .content::-webkit-scrollbar {
     width: 4px;
@@ -1862,17 +1871,31 @@ body {
         transition: none;
     }
 }
+/* ========== 타이머 컨테이너 ========== */
+.interaction-timer-container {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 99;
+}
 /* ========== 상호작용 시스템 스타일 ========== */
 .interaction-timer {
-    font-size: 0.9em;
+    font-size: 1em;
     font-weight: 600;
-    color: #ef4444;
+    color: white;
     text-align: center;
-    padding: 4px 0;
-    background: rgba(239, 68, 68, 0.1);
-    border-radius: 4px;
-    margin-top: 4px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    margin: 0;
     animation: pulse 2s infinite;
+    border-radius: 0;
+}
+/* compact 모드일 때 타이머 조정 */
+.header.compact + .interaction-timer-container .interaction-timer {
+    padding: 10px 20px;
+    font-size: 0.95em;
 }
 
 .available-members-section {
@@ -2081,17 +2104,20 @@ body {
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🕵️ 추리 게임</h1>
-            <p class="subtitle">탐정, 범인, 상인의 추리 커뮤니케이션</p>
-            <div class="interaction-counter" id="interactionCounter">
-                상호작용한 플레이어: <span id="interactionCount">0</span>명
-            </div>
-            <!-- 🆕 타이머 표시 추가 -->
-            <div class="interaction-timer" id="interactionTimer" style="display: none;">
-                ⏰ 대화중: 3:00
-            </div>
+    <div class="header">
+        <h1>🕵️ 추리 게임</h1>
+        <p class="subtitle">탐정, 범인, 상인의 추리 커뮤니케이션</p>
+        <div class="interaction-counter" id="interactionCounter">
+            상호작용한 플레이어: <span id="interactionCount">0</span>명
         </div>
+    </div>
+    
+    <!-- 🆕 타이머를 헤더 밖으로 이동 -->
+    <div class="interaction-timer-container">
+        <div class="interaction-timer" id="interactionTimer" style="display: none;">
+            ⏰ 대화중: 3:00
+        </div>
+    </div>
 
         <div class="content">
             <!-- 로그인 화면 -->
