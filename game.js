@@ -137,7 +137,19 @@ function setupRealtimeListener() {
                     }
                     return;
                 }
+                // 🆕 상호작용 상태 동기화
+                if (data.interactionStatus !== gameState.interactionStatus) {
+                    gameState.interactionStatus = data.interactionStatus;
+                    gameState.currentPartner = data.currentPartner || null;
+                    gameState.matchStartTime = data.matchStartTime || null;
+                    
+                    updateInteractionUI();
+                }
                 
+                // 🆕 상호작용 요청 처리
+                if (data.pendingRequest && data.pendingRequest.from !== gameState.player.loginCode) {
+                    showInteractionRequest(data.pendingRequest);
+                }
                 // 결과 업데이트
                 if (data.results && data.results.length !== gameState.results.length) {
                     gameState.results = data.results;
@@ -239,7 +251,14 @@ let gameState = {
     totalMerchants: null,
     merchantRankingListener: null,
     // 🆕 범인 관련 추가
-    criminalMoney: 0
+    criminalMoney: 0,
+        // 🆕 아래 필드들 추가
+    interactionStatus: 'available', // 'available' | 'requesting' | 'matched'
+    currentPartner: null,
+    matchStartTime: null,
+    isMatched: false,
+    matchTimer: null,
+    availableMembers: []
 };
 // 2단계: 범인 상점 기본 변수 - game.js 상단(gameState 변수 근처)에 추가
 
@@ -256,6 +275,8 @@ let criminalShopItems = [
         purchased: 0
     }
 ];
+let interactionTimer = null;
+let matchEndTime = null;
 
 // 범인 돈 초기화 함수
 function initializeCriminalMoney() {
@@ -1560,8 +1581,11 @@ async function submitCode() {
         
         // 5. 상대방 Firestore에 내가 상호작용했다는 기록 저장
         await recordInteractionToTarget(targetPlayerId, mySecretCode);
-        
-        setTimeout(function() {
+       // 🆕 매칭 중이면 타이머 종료
+        if (gameState.isMatched) {
+            endInteractionTimer();
+        }
+         setTimeout(function() {
             document.getElementById('codeLoading').style.display = 'none';
             displayCodeResult(result);
             document.getElementById('targetCode').value = '';
@@ -2682,7 +2706,16 @@ async function executeKill(killIndex) {
         alert('이미 실행되었거나 실행할 수 없는 대상입니다.');
         return;
     }
-
+    // 🆕 타겟이 상호작용 중인지 확인
+    try {
+        const targetDoc = await db.collection('activePlayers').doc(kill.targetPlayerId).get();
+        if (targetDoc.exists && targetDoc.data().interactionStatus === 'matched') {
+            alert('대상이 다른 플레이어와 대화 중입니다. 대화 종료 후 다시 시도해주세요.');
+            return;
+        }
+    } catch (error) {
+        console.error('타겟 상태 확인 오류:', error);
+    }
     // 관리자 설정에서 제거 대기 시간 가져오기
     let killTimer = 180; // 기본값 3분
     try {
@@ -3051,7 +3084,272 @@ function openCriminalShop() {
         }
     }
 }
+// 🆕 상호작용 시스템 함수들
+async function loadAvailableMembers() {
+    if (!gameState.isLoggedIn) return;
+    
+    try {
+        const snapshot = await db.collection('activePlayers')
+            .where('isAlive', '==', true)
+            .where('isActive', '==', true)
+            .get();
+        
+        const members = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (doc.id !== gameState.player.loginCode && 
+                data.interactionStatus === 'available' &&
+                !gameState.usedCodes.includes(data.secretCode)) {
+                members.push({
+                    loginCode: doc.id,
+                    name: data.name,
+                    position: data.position,
+                    role: data.role
+                });
+            }
+        });
+        
+        gameState.availableMembers = members;
+        updateMembersList();
+    } catch (error) {
+        console.error('멤버 목록 로드 오류:', error);
+    }
+}
 
+function updateMembersList() {
+    const container = document.getElementById('availableMembersContent');
+    if (!container) return;
+    
+    if (gameState.availableMembers.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">현재 상호작용 가능한 멤버가 없습니다.</p>';
+        return;
+    }
+    
+    let html = '';
+    gameState.availableMembers.forEach(member => {
+        const roleNames = {
+            'detective': '🔍 탐정',
+            'criminal': '🔪 범인', 
+            'merchant': '💰 상인'
+        };
+        
+        html += `
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="member-name">${member.name}</div>
+                    <div class="member-details">${member.position} | ${roleNames[member.role]}</div>
+                </div>
+                <button class="interaction-request-btn" onclick="requestInteraction('${member.loginCode}', '${member.name}')">
+                    상호작용
+                </button>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+async function requestInteraction(targetId, targetName) {
+    if (gameState.interactionStatus !== 'available') {
+        alert('현재 상호작용할 수 없는 상태입니다.');
+        return;
+    }
+    
+    try {
+        await db.collection('activePlayers').doc(targetId).update({
+            pendingRequest: {
+                from: gameState.player.loginCode,
+                fromName: gameState.player.name,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }
+        });
+        
+        await db.collection('activePlayers').doc(gameState.player.loginCode).update({
+            interactionStatus: 'requesting'
+        });
+        
+        gameState.interactionStatus = 'requesting';
+        alert(`${targetName}님에게 상호작용 요청을 보냈습니다.`);
+        updateInteractionUI();
+        
+    } catch (error) {
+        console.error('상호작용 요청 오류:', error);
+        alert('요청 전송 중 오류가 발생했습니다.');
+    }
+}
+
+function showInteractionRequest(request) {
+    if (gameState.interactionStatus !== 'available') return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'interaction-request-modal';
+    modal.innerHTML = `
+        <div class="interaction-request-overlay"></div>
+        <div class="interaction-request-content">
+            <h3>🤝 상호작용 요청</h3>
+            <p><strong>${request.fromName}</strong>님이 상호작용을 요청했습니다!</p>
+            <div class="request-actions">
+                <button class="btn-accept" onclick="acceptInteraction('${request.from}', '${request.fromName}')">수락</button>
+                <button class="btn-decline" onclick="declineInteraction('${request.from}')">거절</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 100);
+}
+
+async function acceptInteraction(partnerId, partnerName) {
+    try {
+        const startTime = firebase.firestore.FieldValue.serverTimestamp();
+        
+        // 양쪽 다 매칭 상태로 변경
+        const batch = db.batch();
+        
+        batch.update(db.collection('activePlayers').doc(gameState.player.loginCode), {
+            interactionStatus: 'matched',
+            currentPartner: partnerId,
+            matchStartTime: startTime,
+            pendingRequest: firebase.firestore.FieldValue.delete()
+        });
+        
+        batch.update(db.collection('activePlayers').doc(partnerId), {
+            interactionStatus: 'matched',
+            currentPartner: gameState.player.loginCode,
+            matchStartTime: startTime
+        });
+        
+        await batch.commit();
+        
+        gameState.interactionStatus = 'matched';
+        gameState.currentPartner = partnerId;
+        gameState.isMatched = true;
+        
+        closeInteractionModal();
+        startInteractionTimer(partnerName);
+        updateInteractionUI();
+        
+    } catch (error) {
+        console.error('상호작용 수락 오류:', error);
+        alert('수락 처리 중 오류가 발생했습니다.');
+    }
+}
+
+async function declineInteraction(partnerId) {
+    try {
+        await db.collection('activePlayers').doc(gameState.player.loginCode).update({
+            pendingRequest: firebase.firestore.FieldValue.delete()
+        });
+        
+        await db.collection('activePlayers').doc(partnerId).update({
+            interactionStatus: 'available'
+        });
+        
+        closeInteractionModal();
+        
+    } catch (error) {
+        console.error('상호작용 거절 오류:', error);
+    }
+}
+
+function closeInteractionModal() {
+    const modal = document.querySelector('.interaction-request-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+function startInteractionTimer(partnerName) {
+    // 기존 타이머 정리
+    if (interactionTimer) {
+        clearInterval(interactionTimer);
+    }
+    
+    let timeLeft = 180; // 3분 = 180초
+    matchEndTime = Date.now() + (timeLeft * 1000);
+    
+    updateTimerDisplay(timeLeft, partnerName);
+    
+    interactionTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay(timeLeft, partnerName);
+        
+        if (timeLeft <= 0) {
+            endInteractionTimer();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay(seconds, partnerName) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const timeText = `${minutes}:${secs.toString().padStart(2, '0')}`;
+    
+    const timerElement = document.getElementById('interactionTimer');
+    if (timerElement) {
+        timerElement.innerHTML = `⏰ ${partnerName}님과 대화중: ${timeText}`;
+        timerElement.style.display = 'block';
+    }
+}
+
+async function endInteractionTimer() {
+    if (interactionTimer) {
+        clearInterval(interactionTimer);
+        interactionTimer = null;
+    }
+    
+    try {
+        const batch = db.batch();
+        
+        batch.update(db.collection('activePlayers').doc(gameState.player.loginCode), {
+            interactionStatus: 'available',
+            currentPartner: null,
+            matchStartTime: null
+        });
+        
+        if (gameState.currentPartner) {
+            batch.update(db.collection('activePlayers').doc(gameState.currentPartner), {
+                interactionStatus: 'available',
+                currentPartner: null,
+                matchStartTime: null
+            });
+        }
+        
+        await batch.commit();
+        
+        gameState.interactionStatus = 'available';
+        gameState.currentPartner = null;
+        gameState.isMatched = false;
+        
+        updateInteractionUI();
+        
+        alert('대화가 종료되었습니다. 시크릿 코드를 입력하세요.');
+        
+    } catch (error) {
+        console.error('상호작용 종료 오류:', error);
+    }
+}
+
+function updateInteractionUI() {
+    const timerElement = document.getElementById('interactionTimer');
+    if (timerElement) {
+        if (gameState.interactionStatus === 'matched') {
+            timerElement.style.display = 'block';
+        } else {
+            timerElement.style.display = 'none';
+        }
+    }
+    
+    loadAvailableMembers();
+}
+
+function toggleMembersList() {
+    const section = document.querySelector('.available-members-section');
+    if (section) {
+        section.classList.toggle('expanded');
+    }
+}
 // 전역 스코프에 함수 등록
 window.toggleMySecret = toggleMySecret;
 window.toggleNotice = toggleNotice; // 🆕 업데이트된 함수
@@ -3070,3 +3368,7 @@ window.triggerVibrationPattern = triggerVibrationPattern;
 window.onModalImageLoad = onModalImageLoad;
 window.onModalImageError = onModalImageError;
 window.executeKill = executeKill; // 🆕 이 줄 추가!
+window.requestInteraction = requestInteraction;
+window.acceptInteraction = acceptInteraction;
+window.declineInteraction = declineInteraction;
+window.toggleMembersList = toggleMembersList;
