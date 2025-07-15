@@ -1667,7 +1667,7 @@ async function submitCode() {
         await recordInteractionToTarget(targetPlayerId, mySecretCode);
        // 🆕 매칭 중이면 타이머 종료
         if (gameState.isMatched) {
-            endInteractionTimer();
+            endInteractionTimer('code_entered');
         }
          setTimeout(function() {
             document.getElementById('codeLoading').style.display = 'none';
@@ -3415,7 +3415,7 @@ async function updateTimerFromServer(partnerName) {
         
         if (remaining <= 0) {
             console.log('타이머 시간 만료');
-            endInteractionTimer();
+            endInteractionTimer(); // 기본값 'timeout' 사용
             return;
         }
         
@@ -3456,7 +3456,7 @@ function updateTimerDisplay(seconds, partnerName) {
     }
 }
 
-async function endInteractionTimer() {
+async function endInteractionTimer(reason = 'timeout') {
     if (interactionTimer) {
         clearInterval(interactionTimer);
         interactionTimer = null;
@@ -3487,7 +3487,12 @@ async function endInteractionTimer() {
         
         updateInteractionUI();
         
-        alert('대화가 종료되었습니다. 시크릿 코드를 입력하세요.');
+        // 🆕 종료 이유에 따라 다른 메시지
+        if (reason === 'code_entered') {
+            alert('대화가 종료되었습니다.');
+        } else {
+            alert('대화가 종료되었습니다. 시크릿 코드를 입력하세요.');
+        }
         
     } catch (error) {
         console.error('상호작용 종료 오류:', error);
