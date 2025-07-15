@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>추리 게임 - 관리자</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* 스크린 공통 스타일 */
+        .screen {
+            display: none;
+            padding: 20px;
+            min-height: calc(100vh - 160px);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* 로그인 화면 */
+        .login-form {
+            background: #f8f9fa;
+            padding: 30px 20px;
+            border-radius: 15px;
+            margin: 50px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 게임 상태 */
+        .game-status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #27ae60;
+        }
+
+        .status-inactive {
+            background: #e74c3c;
+        }
+
+        /* 카드 */
+        .card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        /* 테이블 */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative; /* 🆕 추가 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10; /* 🆕 추가 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 🆕 추가 - 헤더 아래 그림자 */
+        }
+
+        .status-alive {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .status-dead {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        /* 하단 네비게이션 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            display: flex;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .nav-item:hover {
+            background: #f8f9fa;
+        }
+
+        .nav-item.active {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .nav-icon {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        /* 알림 */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        /* 입력 그룹 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-group input, .input-group select {
+            flex: 1;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        /* 리스트 아이템 */
+        .list-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .list-item-subtitle {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* 플레이어 상세 정보 */
+        .player-detail {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .activity-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .activity-time {
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 반응형 */
+        @media (max-width: 480px) {
+            .container {
+                max-width: 100%;
+            }
+            
+            .bottom-nav {
+                max-width: 100%;
+            }
+        }
+/* ========== 상인 랭킹 관리자 페이지 CSS (여기서부터 추가) ========== */
+        
+        /* 상인 통계 정보 */
+        .merchant-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .merchant-stats p {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin: 0;
+            border-left: 4px solid #e74c3c;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .merchant-stats strong {
+            color: #e74c3c;
+            font-size: 1.1em;
+        }
+
+        /* 랭킹 테이블 스타일 */
+        .rank-first {
+            color: #ffd700 !important;
+            font-weight: bold !important;
+            font-size: 1.1em;
+        }
+
+        .rank-second {
+            color: #c0c0c0 !important;
+            font-weight: bold !important;
+            font-size: 1.05em;
+        }
+
+        .rank-third {
+            color: #cd7f32 !important;
+            font-weight: bold !important;
+        }
+
+        /* 순위별 행 스타일 */
+        tr.rank-first {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff3cd 100%) !important;
+            border-left: 4px solid #ffd700;
+        }
+
+        tr.rank-second {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+            border-left: 4px solid #c0c0c0;
+        }
+
+        tr.rank-third {
+            background: linear-gradient(135deg, #fdf2e9 0%, #f4e5d3 100%) !important;
+            border-left: 4px solid #cd7f32;
+        }
+
+        /* 수익 금액 스타일 */
+        .money-amount {
+            font-weight: 600;
+            color: #27ae60;
+            font-family: 'Inter', monospace;
+        }
+
+        /* 상태 표시 스타일 */
+        .status-online {
+            color: #27ae60;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .status-online::before {
+            content: '●';
+            color: #27ae60;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-alive {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .status-dead {
+            color: #e74c3c;
+            font-weight: 600;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        /* 펄스 애니메이션 */
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* 테이블 행 호버 효과 */
+        #merchantRankingTable tr:hover {
+            background: #f8f9fa !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* 순위가 높은 행들의 호버 효과 유지 */
+        #merchantRankingTable tr.rank-first:hover {
+            background: linear-gradient(135deg, #fff9c4 0%, #ffeb3b 20%) !important;
+        }
+
+        #merchantRankingTable tr.rank-second:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, #dee2e6 20%) !important;
+        }
+
+        #merchantRankingTable tr.rank-third:hover {
+            background: linear-gradient(135deg, #fdf2e9 0%, #e6ccb3 20%) !important;
+        }
+
+        /* 네비게이션 아이템 조정 (6개로 늘어났으므로) */
+        .nav-item {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .nav-icon {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 480px) {
+            .merchant-stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .nav-item {
+                font-size: 10px;
+                padding: 8px 4px;
+            }
+            
+            .nav-icon {
+                font-size: 12px;
+                margin-bottom: 2px;
+            }
+            
+            /* 테이블 가로 스크롤 */
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 600px;
+            }
+        }
+        
+        /* ========== 상인 랭킹 관리자 페이지 CSS 끝 ========== */ 
+        /* ========== 징벌 기능 CSS (여기서부터 추가) ========== */
+        
+        /* 징벌 버튼 스타일 */
+        .btn.punish {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn.punish:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn.punish:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+        }
+
+        /* 징벌된 플레이어 구분을 위한 추가 스타일 */
+        .status-punished {
+            color: #8b5cf6 !important;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .status-punished::before {
+            content: '⚡';
+            margin-right: 4px;
+            font-size: 0.9em;
+        }
+
+        /* 징벌 관련 알림 스타일 */
+        .alert-punishment {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            color: #6b21a8;
+            border: 1px solid #c4b5fd;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+        }
+
+        /* 징벌된 플레이어 상태 표시 */
+        .status-punished {
+            color: #8b5cf6 !important;
+            font-weight: 600;
+        }
+        
+        .status-online {
+            color: #10b981 !important;
+            font-weight: 600;
+        }
+        
+        .status-online::before {
+            content: '🟢 ';
+            font-size: 0.8em;
+        }
+        
+        .status-punished::before {
+            content: '⚡ ';
+            font-size: 0.8em;
+        }
+        .activity-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border-left: 3px solid #e9ecef;
+        }
+        
+        .activity-item:hover {
+            background: #f1f3f4;
+            transform: translateX(2px);
+        }
+        
+        .activity-time {
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        /* 징벌 관련 활동 아이템 특별 스타일 */
+        .activity-item[style*="border-left: 3px solid #dc2626"] {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+        
+        .activity-item[style*="border-left: 3px solid #059669"] {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+        /* 이미지 업로드 관련 스타일 */
+        input[type="file"] {
+            padding: 12px 16px;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="file"]:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .image-preview {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .image-preview img {
+            display: block;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .upload-loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .upload-loading .spinner {
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes fadeInHighlight {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+    50% {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+    }
+
+        /* 새 플레이어 행 스타일 (선택사항 - 더 눈에 띄게 하려면) */
+        tr[style*="linear-gradient(135deg, #ecfdf5"] {
+            position: relative;
+        }
+        
+        tr[style*="linear-gradient(135deg, #ecfdf5"]::before {
+            content: "NEW!";
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #10b981;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ 추리 게임 관리자</h1>
+            <p class="subtitle">게임 운영 및 관리 시스템</p>
+        </div>
+
+        <!-- 로그인 섹션 -->
+        <div class="screen active" id="loginScreen">
+            <div class="login-form">
+                <h2 style="text-align: center; margin-bottom: 30px;">관리자 로그인</h2>
+                
+                <div class="form-group">
+                    <label for="adminId">관리자 ID</label>
+                    <input type="text" id="adminId" placeholder="admin">
+                </div>
+                
+                <div class="form-group">
+                    <label for="adminPw">비밀번호</label>
+                    <input type="password" id="adminPw" placeholder="admin">
+                </div>
+                
+                <button class="btn" id="loginBtn">로그인</button>
+            </div>
+        </div>
+
+        <!-- 개요 화면 -->
+        <div class="screen" id="overviewScreen">
+            <h2 style="margin-bottom: 20px;">게임 현황</h2>
+            
+            <div class="game-status">
+                <span class="status-indicator" id="gameStatusIndicator"></span>
+                게임 상태: <span id="gameStatusText">중지됨</span>
+            </div>
+
+            <div class="card">
+                <h3>코드와 플레이어</h3>
+                <p>생성된 로그인 코드: <strong id="loginCodesCount">0</strong>개</p>
+                <p>등록된 플레이어: <strong id="registeredCount">0</strong>명</p>
+                <p>접속 중인 플레이어: <strong id="activeCount">0</strong>명</p>
+                <p>생존자: <strong id="aliveCount">0</strong>명</p>
+                <p>사망자: <strong id="deadCount">0</strong>명</p>
+            </div>
+
+            <div class="card">
+                <h3>게임 제어</h3>
+                <button class="btn success" id="startGameBtn">게임 시작</button>
+                <button class="btn danger" id="stopGameBtn">게임 중지</button>
+                <button class="btn warning" id="resetGameBtn">게임 초기화</button>
+            </div>
+        </div>
+
+        <!-- 로그인 코드 생성 화면 -->
+        <div class="screen" id="createCodeScreen">
+            <h2 style="margin-bottom: 20px;">로그인 코드 생성</h2>
+            
+            <div class="card">
+                <h3 id="codeFormTitle">새 로그인 코드 생성</h3>
+                
+                <div class="form-group">
+                    <label for="newLoginCode">로그인 코드 (4자리)</label>
+                    <input type="text" id="newLoginCode" placeholder="예: A001" maxlength="4" style="text-transform: uppercase;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="newCodeRole">역할</label>
+                    <select id="newCodeRole">
+                        <option value="detective">탐정</option>
+                        <option value="criminal">범인</option>
+                        <option value="merchant">상인</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newSecretCode">시크릿 코드 (4자리)</label>
+                    <input type="text" id="newSecretCode" placeholder="예: DT01" maxlength="4" style="text-transform: uppercase;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="newSecretTitle">시크릿 코드 제목</label>
+                    <input type="text" id="newSecretTitle" placeholder="예: 결정적 증거, 상인의 증언">
+                </div>
+                    <!-- 🆕 시크릿 코드용 이미지 업로드 -->
+                <div class="form-group">
+                    <label for="secretImageUpload">증거 이미지 (선택사항)</label>
+                    <input type="file" id="secretImageUpload" accept="image/*" onchange="previewSecretImage(this)">
+                    <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
+                        탐정이 시크릿 코드를 입력했을 때 보여줄 증거 이미지
+                    </small>
+                    <div id="secretImagePreview" style="margin-top: 10px; display: none;">
+                        <img id="secretPreviewImg" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <button type="button" class="btn secondary" onclick="removeSecretImage()" style="margin-top: 8px; width: auto; padding: 5px 12px; font-size: 0.9em;">이미지 제거</button>
+                    </div>
+                </div>
+    
+                <div class="form-group">
+                    <label for="newSecretContent">시크릿 코드 내용</label>
+                    <textarea id="newSecretContent" placeholder="이 시크릿 코드를 입력했을 때 보여줄 내용을 입력하세요."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newInteractionMission">상호작용 게임 미션</label>
+                    <textarea id="newInteractionMission" placeholder="이 역할의 플레이어가 수행해야 할 상호작용 미션을 입력하세요."></textarea>
+                </div>
+                
+                <button class="btn" id="createCodeBtn">코드 생성</button>
+                <button class="btn secondary" id="cancelEditBtn" style="display: none;">수정 취소</button>
+            </div>
+
+            <div class="card">
+                <h3>생성된 로그인 코드 목록</h3>
+                <div id="loginCodesList">
+                    <!-- 생성된 코드들이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 플레이어 관리 화면 -->
+        <div class="screen" id="playerManageScreen">
+            <h2 style="margin-bottom: 20px;">플레이어 관리</h2>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>코드</th>
+                            <th>이름</th>
+                            <th>역할</th>
+                            <th>상태</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersTable">
+                        <!-- 플레이어 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 플레이어 상세 화면 -->
+        <div class="screen" id="playerDetailScreen">
+            <h2 style="margin-bottom: 20px;" id="playerDetailTitle">플레이어 상세 정보</h2>
+            
+            <div id="playerDetailContent">
+                <!-- 플레이어 상세 정보가 여기에 표시됩니다 -->
+            </div>
+            
+            <button class="btn secondary" id="backToPlayersBtn">목록으로 돌아가기</button>
+        </div>
+
+        <!-- 공지사항 관리 화면 -->
+        <div class="screen" id="noticesScreen">
+            <h2 style="margin-bottom: 20px;">공지사항 관리</h2>
+            
+            <div class="card">
+                <h3>새 공지사항 등록</h3>
+                
+                <div class="form-group">
+                    <label for="newNoticeTitle">공지사항 제목</label>
+                    <input type="text" id="newNoticeTitle" placeholder="공지사항 제목을 입력하세요">
+                </div>
+                    <!-- 🆕 이미지 업로드 추가 -->
+            <div class="form-group">
+                <label for="noticeImageUpload">이미지 첨부 (선택사항)</label>
+                <input type="file" id="noticeImageUpload" accept="image/*" onchange="previewNoticeImage(this)">
+                <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
+                    JPG, PNG, GIF, WebP 형식, 최대 5MB
+                </small>
+                <div id="noticeImagePreview" style="margin-top: 10px; display: none;">
+                    <img id="noticePreviewImg" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <button type="button" class="btn secondary" onclick="removeNoticeImage()" style="margin-top: 8px; width: auto; padding: 5px 12px; font-size: 0.9em;">이미지 제거</button>
+                </div>
+             </div>
+            
+                <div class="form-group">
+                    <label for="newNoticeContent">공지사항 내용</label>
+                    <textarea id="newNoticeContent" placeholder="공지사항 내용을 입력하세요" rows="4"></textarea>
+                </div>
+                
+                <button class="btn" id="createNoticeBtn">공지사항 등록</button>
+            </div>
+
+            <div class="card">
+                <h3>등록된 공지사항 목록</h3>
+                <div id="noticesListAdmin">
+                    <!-- 공지사항 목록이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 설정 화면 -->
+        <div class="screen" id="settingsScreen">
+            <h2 style="margin-bottom: 20px;">게임 설정</h2>
+            
+            <div class="card">
+                <h3>기본 설정</h3>
+                <div class="form-group">
+                    <label>최대 제거 횟수</label>
+                    <input type="number" id="maxKillsSetting" value="3" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>제거 대기 시간 (초)</label>
+                    <input type="number" id="killTimerSetting" value="180" min="60" max="600">
+                </div>
+                <div class="form-group">
+                    <label>미션 초기화 쿨타임 (초)</label>
+                    <input type="number" id="missionResetCooldownSetting" value="300" min="0" max="3600">
+                    <small style="color: #666; font-size: 0.85em; margin-top: 5px; display: block;">
+                        플레이어가 미션 초기화 후 다시 초기화할 수 있는 대기 시간 (0 = 제한 없음)
+                    </small>
+                </div>
+                <button class="btn" id="saveSettingsBtn">설정 저장</button>
+            </div>
+            <div class="card">
+                <h3>시스템 관리</h3>
+                <button class="btn danger" id="logoutBtn">로그아웃</button>
+            </div>
+        </div>
+        
+        <!-- 상인 랭킹 화면 -->
+        <div class="screen" id="merchantRankingScreen">
+            <h2 style="margin-bottom: 20px;">💰 상인 랭킹</h2>
+            
+            <div class="card">
+                <h3>실시간 상인 순위</h3>
+                <div class="merchant-stats">
+                    <p>총 상인 수: <strong id="totalMerchantsCount">0</strong>명</p>
+                    <p>평균 수익: <strong id="averageEarnings">0</strong>원</p>
+                    <p>최고 수익: <strong id="topEarnings">0</strong>원</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>상인 순위표</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>순위</th>
+                                <th>이름</th>
+                                <th>직책</th>
+                                <th>수익</th>
+                                <th>거래횟수</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="merchantRankingTable">
+                            <!-- 상인 랭킹 데이터가 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- 하단 네비게이션 -->
+        <div class="bottom-nav" id="bottomNav" style="display: none;">
+            <button class="nav-item active" id="overviewNavBtn">
+                <span class="nav-icon">📊</span>
+                개요
+            </button>
+            <button class="nav-item" id="createCodeNavBtn">
+                <span class="nav-icon">➕</span>
+                코드생성
+            </button>
+            <button class="nav-item" id="playerManageNavBtn">
+                <span class="nav-icon">👥</span>
+                플레이어
+            </button>
+            <button class="nav-item" id="merchantRankingNavBtn">
+                <span class="nav-icon">💰</span>
+                상인랭킹
+            </button>
+            <button class="nav-item" id="noticesNavBtn">
+                <span class="nav-icon">📢</span>
+                공지사항
+            </button>
+            <button class="nav-item" id="settingsNavBtn">
+                <span class="nav-icon">⚙️</span>
+                설정
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <!-- 🆕 Firebase Storage SDK 추가 -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    
+    <!-- 스크립트 -->
+    <script src="firebase-config.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

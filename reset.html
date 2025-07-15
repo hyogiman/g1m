@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 미션 초기화</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #1a202c;
+            font-weight: 400;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header .subtitle {
+            font-size: 0.9em;
+            font-weight: 300;
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border-left: 4px solid #f39c12;
+            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.1);
+        }
+
+        .warning-box h3 {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-box p {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            color: #1f2937;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+            text-transform: none;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn.danger:hover {
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 32px 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #064e3b;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #10b981;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #7f1d1d;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #ef4444;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+            text-align: center;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .info-box h3 {
+            color: #1f2937;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .info-box p {
+            color: #4b5563;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .content {
+                flex: 1;
+                padding: 20px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 미션 초기화</h1>
+            <p class="subtitle">상호작용 미션이 노출되었나요?</p>
+        </div>
+
+        <div class="content">
+            <div class="warning-box">
+                <h3>⚠️ 주의사항</h3>
+                <p>미션 초기화 시 새로운 상호작용 미션과 시크릿 코드가 랜덤으로 배정됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+
+            <div class="info-box">
+                <h3>📋 미션 초기화란?</h3>
+                <p>상호작용 게임에서 미션이 노출되었을 때, 새로운 상호작용 미션과 시크릿 코드로 변경하여 게임을 계속 진행할 수 있도록 하는 기능입니다.</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div id="resetForm">
+                <div class="form-group">
+                    <label for="loginCode">로그인 코드</label>
+                    <input type="text" id="loginCode" placeholder="4자리 코드 입력" maxlength="4" style="text-transform: uppercase;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="reconnectPassword">재접속 비밀번호</label>
+                    <input type="password" id="reconnectPassword" placeholder="재접속 비밀번호 입력">
+                </div>
+                
+                <button class="btn danger" id="resetBtn">🔄 미션 초기화</button>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                <h3>✅ 미션 초기화 완료!</h3>
+                <p>새로운 상호작용 미션과 시크릿 코드가 배정되었습니다.<br>게임 앱을 다시 실행해주세요.</p>
+                <button class="btn" id="backToGameBtn" style="margin-top: 20px;">🎮 게임으로 돌아가기</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">미션 초기화 중...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script>
+        // 미리 정의된 상호작용 미션 목록 (50개)
+        const interactionMissions = [
+            "상대방이 좋아하는 운동을 말하게 하세요",
+            "상대방이 손으로 머리카락을 만지게 하세요", 
+            "상대방이 '좋다'라고 답하게 하세요",
+            "상대방이 웃게 만드세요",
+            "상대방이 '왜'라는 질문을 하게 하세요",
+            "상대방이 최근에 본 영화를 말하게 하세요",
+            "상대방이 숫자 2자리를 말하게 하세요",
+            "상대방이 최근에 본 책을 말하게 하세요",
+            "상대방이 '음료'와 관련된 말을 하게 하세요",
+            "상대방이 박수치며 웃게 만드세요",
+            "상대방이 '어디'라는 단어를 말하게 하세요",
+            "상대방이 자신의 장점을 이야기 하게 하세요",
+            "상대방이 좋아하는 뮤지션을 이야기 하게 하세요",
+            "상대방이 주머니에 손을 넣게 하세요",
+            "상대방의 어릴적 꿈을 이야기 하게 하세요",
+            "상대방이 '우와'하고 감탄하게 하세요",
+            "상대방이 '언제'라는 단어를 말하게 하세요",
+            "상대방이 최근에 가장 기뻤던 일을 말하게 하세요",
+            "상대방이 최근에 본 유튜브 영상을 말하게 하세요",
+            "상대방이 박수를 치게 하세요",
+            "상대방이 오늘 날씨가 어떤지 이야기 하게 하세요",
+            "상대방이 입을 크게 벌리게 하세요",
+            "상대방이 '그런데'라는 단어를 말하게 하세요",
+            "상대방이 죽기전에 해보고 싶은 일을 이야기 하게 하세요",
+            "상대방이 '사람'이라는 단어를 말하게 하세요",
+            "상대방이 어깨를 으쓱하게 하세요",
+            "상대방이 '맞다'라는 단어를 말하게 하세요",
+            "상대방이 코를 만지게 하세요",
+            "상대방이 '혹시'라는 단어를 말하게 하세요",
+            "상대방이 1년전으로 되돌아가고 싶다면 뭘 하고 싶은지 말하게 하세요",
+            "상대방이 존경하는 인물을 이야기 하게 하세요",
+            "상대방이 가족과 함께했던 경험을 이야기 하게 하세요",
+            "상대방이 '그러니까'라는 단어를 말하게 하세요",
+            "상대방이 꼭 가보고 싶은 나라에 대해 이야기하게 하세요",
+            "상대방이 '몰랐어요' 라고 말하게 하세요",
+            "상대방이 손으로 눈을 가리게 하세요",
+            "상대방이 '아마'라는 단어를 말하게 하세요",
+            "상대방이 다리를 꼬게 하세요",
+            "상대방이 '집'이라는 단어를 말하게 하세요",
+            "상대방이 입술을 만지게 하세요",
+            "상대방이 '그래서'라는 단어를 말하게 하세요",
+            "상대방이 '로또'라는 단어를 말하게 하세요",
+            "상대방이 가족이 몇명인지 말하게 하세요",
+            "상대방이 귀를 만지게 하세요",
+            "상대방이 '알 것 같다' 라고 말하게 하세요",
+            "상대방이 은퇴 후 하고싶은 일에 대해 말하게 하세요",
+            "상대방이 우리 공장사람 이름을 말하게 하세요",
+            "상대방이 '나도 그래/저도 그래요'라고 말을 하게 하세요",
+            "상대방이 '아직'이라는 단어를 말하게 하세요",
+            "상대방이 의자에 앉도록 하세요"
+        ];
+
+        // 시크릿 코드 생성 함수 (중복 방지)
+        async function generateUniqueSecretCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let attempts = 0;
+            const maxAttempts = 50; // 최대 50번 시도
+            
+            while (attempts < maxAttempts) {
+                // 랜덤 시크릿 코드 생성
+                let newCode = '';
+                for (let i = 0; i < 4; i++) {
+                    newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                
+                // 기존 시크릿 코드와 중복 확인
+                const isDuplicate = await checkSecretCodeDuplicate(newCode);
+                
+                if (!isDuplicate) {
+                    return newCode; // 중복되지 않으면 반환
+                }
+                
+                attempts++;
+            }
+            
+            // 50번 시도해도 중복되지 않는 코드를 찾지 못한 경우
+            throw new Error('새로운 시크릿 코드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        }
+
+        // 시크릿 코드 중복 확인 함수
+        async function checkSecretCodeDuplicate(secretCode) {
+            try {
+                await waitForFirebase(); // Firebase 로드 대기
+                
+                // 1. registeredUsers에서 확인
+                const usersSnapshot = await db.collection('registeredUsers')
+                    .where('secretCode', '==', secretCode)
+                    .limit(1)
+                    .get();
+                
+                if (!usersSnapshot.empty) {
+                    return true; // 중복됨
+                }
+                
+                // 2. loginCodes에서 확인
+                const loginCodesSnapshot = await db.collection('loginCodes')
+                    .where('secretCode', '==', secretCode)
+                    .limit(1)
+                    .get();
+                
+                if (!loginCodesSnapshot.empty) {
+                    return true; // 중복됨
+                }
+                
+                // 3. activePlayers에서 확인
+                const activePlayersSnapshot = await db.collection('activePlayers')
+                    .where('secretCode', '==', secretCode)
+                    .limit(1)
+                    .get();
+                
+                if (!activePlayersSnapshot.empty) {
+                    return true; // 중복됨
+                }
+                
+                return false; // 중복되지 않음
+            } catch (error) {
+                console.error('시크릿 코드 중복 확인 오류:', error);
+                return true; // 오류 발생 시 안전하게 중복으로 처리
+            }
+        }
+
+        // Firebase 초기화 대기 함수
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                if (typeof db !== 'undefined') {
+                    resolve();
+                } else {
+                    const checkFirebase = setInterval(() => {
+                        if (typeof db !== 'undefined') {
+                            clearInterval(checkFirebase);
+                            resolve();
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        // 게임 상태 확인 함수
+        async function checkGameStatus() {
+            try {
+                await waitForFirebase(); // Firebase 로드 대기
+                const gameDoc = await db.collection('gameSettings').doc('gameStatus').get();
+                return gameDoc.exists ? gameDoc.data().isActive : false;
+            } catch (error) {
+                console.error('게임 상태 확인 오류:', error);
+                return false;
+            }
+        }
+
+        // 페이지 접근 권한 확인
+        async function checkPageAccess() {
+            const isGameActive = await checkGameStatus();
+            
+            if (!isGameActive) {
+                // 게임이 시작되지 않은 경우
+                document.getElementById('resetForm').style.display = 'none';
+                document.getElementById('errorMessage').innerHTML = 
+                    '<h3>⚠️ 게임이 시작되지 않음</h3>' +
+                    '<p>관리자가 아직 게임을 시작하지 않았습니다.<br>' +
+                    '게임 시작 후 다시 시도해주세요.</p>';
+                document.getElementById('errorMessage').style.display = 'block';
+                
+                // 주기적으로 게임 상태 확인 (10초마다)
+                const statusCheckInterval = setInterval(async () => {
+                    const currentGameStatus = await checkGameStatus();
+                    if (currentGameStatus) {
+                        clearInterval(statusCheckInterval);
+                        location.reload(); // 게임이 시작되면 페이지 새로고침
+                    }
+                }, 10000);
+                
+                return false;
+            }
+            
+            return true;
+        }
+        async function checkMissionResetCooldown(loginCode) {
+            try {
+                // 설정에서 쿨타임 가져오기
+                const settingsDoc = await db.collection('gameSettings').doc('config').get();
+                
+                // 0일 때도 정확히 0으로 처리되도록 수정
+                let cooldownSeconds;
+                if (settingsDoc.exists && settingsDoc.data().hasOwnProperty('missionResetCooldown')) {
+                    cooldownSeconds = settingsDoc.data().missionResetCooldown;
+                } else {
+                    cooldownSeconds = 300; // 기본값
+                }
+                
+                console.log('현재 설정된 쿨타임:', cooldownSeconds + '초'); // 디버깅용
+                
+                // 쿨타임이 0이면 제한 없음
+                if (cooldownSeconds === 0) {
+                    return { canReset: true, remainingTime: 0 };
+                }
+                
+                // 사용자의 마지막 미션 초기화 시간 확인
+                const userDoc = await db.collection('registeredUsers').doc(loginCode).get();
+                if (!userDoc.exists) {
+                    return { canReset: false, remainingTime: 0, error: '등록되지 않은 사용자입니다.' };
+                }
+                
+                const userData = userDoc.data();
+                const lastResetTime = userData.lastMissionResetTime;
+                
+                if (!lastResetTime) {
+                    // 처음 초기화하는 경우
+                    return { canReset: true, remainingTime: 0 };
+                }
+                
+                const now = Date.now();
+                const timeSinceLastReset = now - lastResetTime.toMillis();
+                const cooldownMillis = cooldownSeconds * 1000;
+                
+                if (timeSinceLastReset >= cooldownMillis) {
+                    return { canReset: true, remainingTime: 0 };
+                } else {
+                    const remainingTime = Math.ceil((cooldownMillis - timeSinceLastReset) / 1000);
+                    return { canReset: false, remainingTime: remainingTime };
+                }
+                
+            } catch (error) {
+                console.error('쿨타임 확인 오류:', error);
+                return { canReset: false, remainingTime: 0, error: '쿨타임 확인 중 오류가 발생했습니다.' };
+            }
+        }
+
+        // 남은 시간을 읽기 쉬운 형태로 변환
+        function formatRemainingTime(seconds) {
+            if (seconds < 60) {
+                return seconds + '초';
+            } else if (seconds < 3600) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                return minutes + '분' + (remainingSeconds > 0 ? ' ' + remainingSeconds + '초' : '');
+            } else {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return hours + '시간' + (minutes > 0 ? ' ' + minutes + '분' : '');
+            }
+        }
+        // 미션 초기화 함수
+        // 미션 초기화 함수
+        async function resetMission() {
+            // 게임 상태 먼저 확인
+            const canAccess = await checkPageAccess();
+            if (!canAccess) {
+                return;
+            }
+
+            const loginCode = document.getElementById('loginCode').value.toUpperCase();
+            const reconnectPassword = document.getElementById('reconnectPassword').value;
+
+            if (!loginCode || !reconnectPassword) {
+                showError('로그인 코드와 재접속 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+
+            if (loginCode.length !== 4) {
+                showError('로그인 코드는 4자리여야 합니다.');
+                return;
+            }
+
+            // 쿨타임 확인
+            const cooldownCheck = await checkMissionResetCooldown(loginCode);
+            if (cooldownCheck.error) {
+                showError(cooldownCheck.error);
+                return;
+            }
+
+            if (!cooldownCheck.canReset) {
+                const timeText = formatRemainingTime(cooldownCheck.remainingTime);
+                showError('미션 초기화 쿨타임이 남아있습니다. ' + timeText + ' 후에 다시 시도해주세요.');
+                return;
+            }
+
+            // 확인 창
+            if (!confirm('상호작용 게임미션과 시크릿 코드를 초기화 하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resetForm').style.display = 'none';
+            hideMessages();
+
+            try {
+                // 등록된 사용자 확인
+                const userDoc = await db.collection('registeredUsers').doc(loginCode).get();
+                if (!userDoc.exists) {
+                    throw new Error('등록되지 않은 로그인 코드입니다.');
+                }
+
+                const userData = userDoc.data();
+                if (userData.reconnectPassword !== reconnectPassword) {
+                    throw new Error('재접속 비밀번호가 올바르지 않습니다.');
+                }
+
+                // 랜덤 미션과 새로운 시크릿 코드 생성
+                const randomMission = interactionMissions[Math.floor(Math.random() * interactionMissions.length)];
+                const newSecretCode = await generateUniqueSecretCode();
+
+                // 기존 시크릿 코드 찾기
+                const loginCodesSnapshot = await db.collection('loginCodes')
+                    .where('secretCode', '==', userData.secretCode)
+                    .limit(1)
+                    .get();
+
+                let loginCodeDocId = null;
+                if (!loginCodesSnapshot.empty) {
+                    loginCodeDocId = loginCodesSnapshot.docs[0].id;
+                }
+
+                // Firestore 업데이트 배치
+                const batch = db.batch();
+
+                // 1. registeredUsers 업데이트 (마지막 초기화 시간 포함)
+                const userRef = db.collection('registeredUsers').doc(loginCode);
+                batch.update(userRef, {
+                    secretCode: newSecretCode,
+                    lastMissionResetTime: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 2. loginCodes 업데이트 (존재하는 경우) - 제목과 내용은 유지
+                if (loginCodeDocId) {
+                    const loginCodeRef = db.collection('loginCodes').doc(loginCodeDocId);
+                    batch.update(loginCodeRef, {
+                        secretCode: newSecretCode,
+                        interactionMission: randomMission,
+                        // secretTitle과 secretContent는 건드리지 않음 (기존 값 유지)
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                // 3. activePlayers 업데이트 (존재하는 경우)
+                const activePlayerDoc = await db.collection('activePlayers').doc(loginCode).get();
+                if (activePlayerDoc.exists) {
+                    const activePlayerRef = db.collection('activePlayers').doc(loginCode);
+                    batch.update(activePlayerRef, {
+                        secretCode: newSecretCode,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                // 배치 실행
+                await batch.commit();
+
+                // 성공 표시
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+                }, 1500);
+
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resetForm').style.display = 'block';
+                showError(error.message);
+                console.error('미션 초기화 오류:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // 게임으로 돌아가기 함수
+        function backToGame() {
+            // 현재 창에서 index.html로 바로 이동
+            window.location.replace('index.html');
+        }
+        // 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 페이지 로드 시 게임 상태 확인
+            const canAccess = await checkPageAccess();
+            if (!canAccess) {
+                return; // 게임이 시작되지 않으면 더 이상 진행하지 않음
+            }
+
+            document.getElementById('resetBtn').addEventListener('click', resetMission);
+            document.getElementById('backToGameBtn').addEventListener('click', backToGame);
+            
+            // 입력 필드 자동 대문자 변환
+            document.getElementById('loginCode').addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+            });
+
+            // Enter 키 이벤트
+            document.getElementById('reconnectPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    resetMission();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
