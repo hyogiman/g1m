@@ -3459,3 +3459,5 @@ window.requestInteraction = requestInteraction;
 window.acceptInteraction = acceptInteraction;
 window.declineInteraction = declineInteraction;
 window.toggleMembersList = toggleMembersList;
+window.startInteractionTimerWithRemaining = startInteractionTimerWithRemaining;
+window.initializeInteractionFields = initializeInteractionFields;
