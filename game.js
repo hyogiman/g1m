@@ -150,6 +150,28 @@ function setupRealtimeListener() {
                 if (data.pendingRequest && data.pendingRequest.from !== gameState.player.loginCode) {
                     showInteractionRequest(data.pendingRequest);
                 }
+            // 🆕 매칭 상태 복원 및 타이머 재시작
+                if (data.interactionStatus === 'matched' && data.currentPartner && data.matchStartTime && !gameState.isMatched) {
+                    gameState.isMatched = true;
+                    
+                    // 타이머 재계산 및 재시작
+                    const matchStart = data.matchStartTime.toMillis();
+                    const elapsed = Date.now() - matchStart;
+                    const remaining = Math.max(0, 180000 - elapsed); // 3분 - 경과시간
+                    
+                    if (remaining > 0) {
+                        // 상대방 이름 가져오기
+                        db.collection('activePlayers').doc(data.currentPartner).get().then(partnerDoc => {
+                            if (partnerDoc.exists) {
+                                const partnerName = partnerDoc.data().name;
+                                startInteractionTimerWithRemaining(partnerName, Math.floor(remaining / 1000));
+                            }
+                        });
+                    } else {
+                        // 이미 시간이 지났으면 즉시 종료
+                        endInteractionTimer();
+                    }
+                }
                 // 결과 업데이트
                 if (data.results && data.results.length !== gameState.results.length) {
                     gameState.results = data.results;
@@ -658,6 +680,11 @@ async function quickLogin() {
                         money: 0,
                         usedCodes: [],
                         receivedInteractions: {},
+                        // 🆕 상호작용 필드 추가
+                        interactionStatus: 'available',
+                        currentPartner: null,
+                        matchStartTime: null,
+                        pendingRequest: null,
                         loginTime: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     
@@ -767,6 +794,11 @@ async function register() {
                 money: 0, // 🆕 새 등록자는 0원으로 시작
                 usedCodes: [], // 🆕 새 등록자는 빈 배열로 시작
                 receivedInteractions: {}, // 🆕 새 등록자는 빈 객체로 시작
+                   // 🆕 상호작용 필드 추가
+                interactionStatus: 'available',
+                currentPartner: null,
+                matchStartTime: null,
+                pendingRequest: null,
                 // 범인인 경우 범인 관련 데이터도 추가
                 ...(userData.role === 'criminal' && {
                     criminalMoney: 0, // 🆕 새 범인은 0원으로 시작
@@ -897,7 +929,15 @@ async function completeLogin() {
     
     // 상호작용 카운트 업데이트 (누적 유지)
     updateInteractionCount();
+    // 🆕 상호작용 시스템 초기화
+    if (gameState.role === 'criminal') {
+        await loadCriminalMoney();
+        console.log('범인 돈 로드 완료:', criminalMoney + '원');
+    }
     
+    // 🆕 상호작용 멤버 목록 로드
+    await loadAvailableMembers();
+      
 setupRealtimeListener();
     
     console.log('로그인 완료!');
@@ -1402,8 +1442,20 @@ async function logout() {
             merchantRank: null,
             totalMerchants: null,
             merchantRankingListener: null,
-            criminalMoney: 0 // 🆕 추가
+            criminalMoney: 0, // 🆕 추가
+                // 🆕 상호작용 필드 추가
+            interactionStatus: 'available',
+            currentPartner: null,
+            matchStartTime: null,
+            isMatched: false,
+            matchTimer: null,
+            availableMembers: []
         };
+        // 🆕 상호작용 타이머 정리
+        if (interactionTimer) {
+            clearInterval(interactionTimer);
+            interactionTimer = null;
+        }
         // 헤더를 원래 상태로 복구 및 컨텐츠 원상복구
         const header = document.querySelector('.header');
         const content = document.querySelector('.content');
@@ -3281,6 +3333,26 @@ function startInteractionTimer(partnerName) {
     }, 1000);
 }
 
+function startInteractionTimerWithRemaining(partnerName, remainingSeconds) {
+    // 기존 타이머 정리
+    if (interactionTimer) {
+        clearInterval(interactionTimer);
+    }
+    
+    let timeLeft = remainingSeconds;
+    matchEndTime = Date.now() + (timeLeft * 1000);
+    
+    updateTimerDisplay(timeLeft, partnerName);
+    
+    interactionTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay(timeLeft, partnerName);
+        
+        if (timeLeft <= 0) {
+            endInteractionTimer();
+        }
+    }, 1000);
+}
 function updateTimerDisplay(seconds, partnerName) {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -3350,6 +3422,21 @@ function toggleMembersList() {
         section.classList.toggle('expanded');
     }
 }
+// 🆕 새 플레이어 등록 시 상호작용 필드 초기화
+async function initializeInteractionFields(loginCode) {
+    try {
+        await db.collection('activePlayers').doc(loginCode).update({
+            interactionStatus: 'available',
+            currentPartner: null,
+            matchStartTime: null,
+            pendingRequest: null
+        });
+    } catch (error) {
+        console.error('상호작용 필드 초기화 오류:', error);
+    }
+}
+
+
 // 전역 스코프에 함수 등록
 window.toggleMySecret = toggleMySecret;
 window.toggleNotice = toggleNotice; // 🆕 업데이트된 함수
