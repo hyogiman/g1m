@@ -53,10 +53,13 @@ function setupRealtimeListener() {
             
             // receivedInteractions 데이터 동기화
             if (data.receivedInteractions) {
+                const oldInteractions = gameState.receivedInteractions || {};
                 gameState.receivedInteractions = data.receivedInteractions;
                 updateInteractionCount();
                 // 🆕 receivedInteractions 변경 시 즉시 멤버 리스트 업데이트
                 loadAvailableMembers();
+                    // 🆕 쿨타임 만료 체크 및 자동 업데이트 시작
+                scheduleNextCooldownCheck();
             }
             
                 // 역할이나 시크릿 코드가 변경된 경우 게임 상태 업데이트
@@ -220,6 +223,45 @@ function setupRealtimeListener() {
         });
     // 🆕 리스너 정리를 위해 gameState에 저장
     gameState.availableMembersListener = availableMembersListener;
+}
+
+function scheduleNextCooldownCheck() {
+    // 기존 타이머 정리
+    if (window.cooldownCheckTimer) {
+        clearTimeout(window.cooldownCheckTimer);
+    }
+    
+    const now = Date.now();
+    let nextExpiry = null;
+    
+    // 가장 빨리 만료될 쿨타임 찾기
+    Object.values(gameState.receivedInteractions).forEach(interaction => {
+        if (interaction.cooldownUntil && interaction.cooldownUntil > now) {
+            if (!nextExpiry || interaction.cooldownUntil < nextExpiry) {
+                nextExpiry = interaction.cooldownUntil;
+            }
+        }
+    });
+    
+    if (nextExpiry) {
+        const delay = nextExpiry - now + 1000; // 1초 여유
+        console.log('다음 쿨타임 만료까지:', Math.floor(delay / 1000) + '초');
+        
+        window.cooldownCheckTimer = setTimeout(() => {
+            console.log('쿨타임 만료 - 멤버 리스트 업데이트');
+            loadAvailableMembers();
+            // 다음 쿨타임도 체크
+            scheduleNextCooldownCheck();
+        }, delay);
+    }
+}
+
+// 🆕 쿨타임 타이머 정리
+function clearCooldownTimer() {
+    if (window.cooldownCheckTimer) {
+        clearTimeout(window.cooldownCheckTimer);
+        window.cooldownCheckTimer = null;
+    }
 }
 
 // UI 관련 함수들
@@ -1485,6 +1527,8 @@ async function logout() {
             matchTimer: null,
             availableMembers: []
         };
+        // 🆕 쿨타임 타이머 정리 (기존 타이머 정리 부분 근처에 추가)
+        clearCooldownTimer();
         // 🆕 상호작용 타이머 정리
         if (interactionTimer) {
             clearInterval(interactionTimer);
@@ -3599,3 +3643,5 @@ window.startInteractionTimerWithRemaining = startInteractionTimerWithRemaining;
 window.initializeInteractionFields = initializeInteractionFields;
 window.updateTimerFromServer = updateTimerFromServer;
 window.canInputSecretCode = canInputSecretCode;
+window.scheduleNextCooldownCheck = scheduleNextCooldownCheck;
+window.clearCooldownTimer = clearCooldownTimer;
