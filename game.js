@@ -1388,12 +1388,12 @@ function triggerVibrationPattern(type) {
         
         switch (type) {
             case 'notification':
-                // 공지사항: 짧게-길게-짧게-길게
-                pattern = [200, 100, 300, 100, 200, 100, 300];
+                // 공지사항: 적당히 길게
+                pattern = [500];
                 break;
             case 'alert':
                 // 🆕 경고: 더 길고 강하게! (원래: 길게 3번)
-                pattern = [1000, 300, 1000, 300, 1000, 300, 800, 200, 800];
+                pattern = [1000];
                 break;
             case 'success':
                 // 성공: 짧게 2번
