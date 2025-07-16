@@ -1393,7 +1393,7 @@ function triggerVibrationPattern(type) {
                 break;
             case 'alert':
                 // 🆕 경고: 더 길고 강하게! (원래: 길게 3번)
-                pattern = [1000];
+                pattern = [1300];
                 break;
             case 'success':
                 // 성공: 짧게 2번
