@@ -3563,7 +3563,7 @@ async function endInteractionTimer(reason = 'timeout') {
         
         updateInteractionUI();
         
-        // 🆕 종료 이유에 따라 다른 메시지 + 진동
+        // 🆕 진동을 alert 이전에 먼저!
         if (reason === 'code_entered') {
             // 시크릿 코드 입력으로 종료 - 일반 진동
             if (typeof triggerVibrationPattern === 'function') {
@@ -3571,9 +3571,9 @@ async function endInteractionTimer(reason = 'timeout') {
             }
             alert('대화가 종료되었습니다.');
         } else {
-            // 시간 만료로 종료 - 특별한 진동
+            // 🆕 시간 만료로 종료 - 진동 먼저, 그 다음 alert
             if (typeof triggerVibrationPattern === 'function') {
-                triggerVibrationPattern('alert'); // 더 강한 진동
+                triggerVibrationPattern('alert');
             }
             alert('대화가 종료되었습니다. 시크릿 코드를 입력하세요.');
         }
