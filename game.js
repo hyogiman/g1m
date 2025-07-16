@@ -3577,7 +3577,7 @@ async function endInteractionTimer(reason = 'timeout') {
                 triggerVibrationPattern('alert');
             }
             setTimeout(() => {
-                alert('대화가 종료되었습니다. 시크릿 코드를 입력하세요.');
+                alert('대화가 종료되었습니다.');
             }, 100);
         }
         
