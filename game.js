@@ -1740,7 +1740,7 @@ async function processSecretCode(targetPlayer, targetPlayerId) {
 
             case 'merchant':
                 result.type = 'money';
-                // 역할별 차등 거래 금액
+                // 상인 보상 역할별 차등 거래 금액
                 if (targetPlayer.role === 'merchant') {
                     // 상인끼리: 50~130원
                     result.amount = Math.floor(Math.random() * 81) + 50;
@@ -2858,13 +2858,15 @@ async function executeKill(killIndex) {
             return;
         }
 
-        // 🆕 보상 계산 (새로 추가된 부분)
+        // 🆕 범인 보상 계산 (새로 추가된 부분)
         let rewardMoney = 0;
         if (gameState.role === 'criminal') {
             if (kill.targetRole === 'merchant') {
-                rewardMoney = Math.floor(Math.random() * 41) + 30; // 40~70원
+                rewardMoney = Math.floor(Math.random() * 41) + 40; // 40~80원
             } else if (kill.targetRole === 'detective') {
-                rewardMoney = Math.floor(Math.random() * 61) + 50; // 60~110원
+                rewardMoney = Math.floor(Math.random() * 61) + 70; // 70~130원
+            } else if (kill.targetRole === 'criminal') {
+                rewardMoney = Math.floor(Math.random() * 11) + 0; // 0~10원
             }
         }
 
