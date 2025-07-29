@@ -305,8 +305,10 @@
         }
 
         function resetCount() {
-            correctCount = 0;
-            document.getElementById('score').textContent = correctCount;
+            if (confirm('정말 점수를 리셋하시겠습니까?\n현재 점수: ' + correctCount + '점')) {
+                correctCount = 0;
+                document.getElementById('score').textContent = correctCount;
+            }
         }
 
         // 초기 상태
