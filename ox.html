@@ -171,8 +171,13 @@
         <!-- 헤더 -->
         <div class="header-gradient">
             <div class="text-center py-6">
-                <h1 class="text-3xl font-bold text-white mb-1" translate="no">OX Quiz</h1>
-                <p class="text-white text-opacity-80 text-sm font-medium" translate="no">O 또는 X를 선택하세요</p>
+                <h1 class="text-3xl font-bold text-white mb-3" translate="no">OX Quiz</h1>
+                <div class="flex justify-center mb-2">
+                    <div class="bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg text-white px-6 py-2 rounded-full font-bold text-lg border border-white border-opacity-30" translate="no">
+                        정답: <span id="score">0</span>
+                    </div>
+                </div>
+                <p class="text-white text-opacity-70 text-sm font-medium" translate="no">O 또는 X를 선택하세요</p>
             </div>
         </div>
 
@@ -201,25 +206,19 @@
             </div>
 
             <!-- 점수 및 액션 -->
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="score-badge text-white px-6 py-3 rounded-2xl font-bold text-lg score-pulse" translate="no">
-                    정답: <span id="score">0</span>
-                </div>
-                
-                <div class="flex space-x-3 flex-wrap gap-2">
-                    <button id="btn-correct" onclick="handleCorrect()" disabled
-                            class="btn-disabled px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:-translate-y-1" translate="no">
-                        ✓ 정답
-                    </button>
-                    <button id="btn-wrong" onclick="handleWrong()" disabled
-                            class="btn-disabled px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:-translate-y-1" translate="no">
-                        ✗ 오답
-                    </button>
-                    <button onclick="resetCount()" 
-                            class="btn-primary px-5 py-3 text-white rounded-xl font-semibold transform hover:-translate-y-1" translate="no">
-                        리셋
-                    </button>
-                </div>
+            <div class="flex items-center justify-center space-x-3 flex-wrap gap-2">
+                <button id="btn-correct" onclick="handleCorrect()" disabled
+                        class="btn-disabled px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:-translate-y-1" translate="no">
+                    ✓ 정답
+                </button>
+                <button id="btn-wrong" onclick="handleWrong()" disabled
+                        class="btn-disabled px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:-translate-y-1" translate="no">
+                    ✗ 오답
+                </button>
+                <button onclick="resetCount()" 
+                        class="btn-primary px-5 py-3 text-white rounded-xl font-semibold transform hover:-translate-y-1" translate="no">
+                    리셋
+                </button>
             </div>
         </div>
     </div>
@@ -237,13 +236,7 @@
             const displayArea = document.getElementById('display-area');
             const color = answer === 'O' ? 'text-blue-500' : 'text-red-500';
             
-            displayArea.innerHTML = `
-                <div class="text-center w-full">
-                    <div class="ox-display ${color}">
-                        ${answer}
-                    </div>
-                </div>
-            `;
+            displayArea.innerHTML = '<div class="text-center w-full"><div class="ox-display ' + color + '">' + answer + '</div></div>';
             
             updateButtons();
         }
@@ -306,10 +299,7 @@
             hasScored = false;
             
             const displayArea = document.getElementById('display-area');
-            displayArea.innerHTML = `
-                <div class="text-6xl mb-6 opacity-60">🤔</div>
-                <div class="text-xl font-semibold opacity-80" translate="no">O 또는 X를 선택하세요</div>
-            `;
+            displayArea.innerHTML = '<div class="text-6xl mb-6 opacity-60">🤔</div><div class="text-xl font-semibold opacity-80" translate="no">O 또는 X를 선택하세요</div>';
             
             updateButtons();
         }
