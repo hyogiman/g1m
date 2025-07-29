@@ -277,6 +277,10 @@
                 hasScored = true;
                 updateButtons();
                 
+                // '다음 문제로 이동합니다' 메시지 표시
+                const displayArea = document.getElementById('display-area');
+                displayArea.innerHTML = '<div class="text-center"><div class="text-green-500 text-2xl font-bold mb-4">✓ 정답!</div><div class="text-gray-500 text-lg" translate="no">다음 문제로 이동합니다...</div></div>';
+                
                 setTimeout(() => {
                     resetToNext();
                 }, 1200);
@@ -287,6 +291,10 @@
             if (!hasScored && selectedAnswer) {
                 hasScored = true;
                 updateButtons();
+                
+                // '다음 문제로 이동합니다' 메시지 표시
+                const displayArea = document.getElementById('display-area');
+                displayArea.innerHTML = '<div class="text-center"><div class="text-orange-500 text-2xl font-bold mb-4">✗ 오답</div><div class="text-gray-500 text-lg" translate="no">다음 문제로 이동합니다...</div></div>';
                 
                 setTimeout(() => {
                     resetToNext();
